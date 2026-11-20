@@ -42,6 +42,7 @@ if (app.Environment.IsDevelopment())
 
 // ── Endpoints de ciclos (novos — agrupados e ricos) ───────────────────────────
 app.MapCycleEndpoints();
+app.MapImportEndpoints();
 
 // ── Endpoints legados (CRUD simples) ─────────────────────────────────────────
 

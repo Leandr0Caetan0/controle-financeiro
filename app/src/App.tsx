@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { CycleSummaryDto, CycleDetailDto } from './types/api';
 import { api } from './api/client';
+import { AddEntryModal } from './components/AddEntryModal';
+import { CsvImportModal } from './components/CsvImportModal';
 import { AlertsPanel } from './components/AlertsPanel';
 import { UltraCard } from './components/UltraCard';
 import { SummaryCard } from './components/SummaryCard';
@@ -16,6 +18,8 @@ export default function App() {
   const [loadingCycles, setLoadingCycles] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showCsvModal, setShowCsvModal] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -51,6 +55,18 @@ export default function App() {
   useEffect(() => {
     if (selectedId) loadDetail(selectedId);
   }, [selectedId, loadDetail]);
+
+  // Atalho global Ctrl+K / Cmd+K → abre Lançamento Rápido
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        if (detail?.cycle) setShowAddModal(v => !v);
+      }
+    };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [detail]);
 
   async function handleCreateNext() {
     if (!selectedId) return;
@@ -99,6 +115,21 @@ export default function App() {
               </select>
             )}
             <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-violet-600 hover:bg-violet-500 border border-violet-500 text-white rounded-lg px-3 py-1.5 text-xs font-bold transition-colors"
+              title="Novo lançamento (Ctrl+K)"
+            >
+              + Lançamento
+            </button>
+            <button
+              onClick={() => setShowCsvModal(true)}
+              disabled={!selectedId}
+              className="bg-zinc-700 hover:bg-zinc-600 disabled:opacity-40 border border-zinc-600 text-zinc-200 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+              title="Importar CSV / Google Sheets"
+            >
+              📥 CSV
+            </button>
+            <button
               onClick={() => { void handleCreateNext(); }}
               disabled={!selectedId}
               className="bg-violet-900/60 hover:bg-violet-800/60 disabled:opacity-40 border border-violet-700 text-violet-200 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
@@ -108,6 +139,24 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* ── Modal CSV Import ── */}
+      {showCsvModal && cycle && (
+        <CsvImportModal
+          cycleId={cycle.id}
+          onClose={() => setShowCsvModal(false)}
+          onImported={() => { if (cycle) loadDetail(cycle.id); }}
+        />
+      )}
+
+      {/* ── Modal de lançamento ── */}
+      {showAddModal && cycle && (
+        <AddEntryModal
+          cycleId={cycle.id}
+          onClose={() => setShowAddModal(false)}
+          onSaved={() => { setShowAddModal(false); if (cycle) loadDetail(cycle.id); }}
+        />
+      )}
 
       {/* ── Main ── */}
       <main className="max-w-7xl mx-auto px-4 py-6 flex flex-col gap-5">
