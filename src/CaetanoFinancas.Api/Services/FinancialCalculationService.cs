@@ -160,15 +160,19 @@ public sealed class FinancialCalculationService
             .Where(f => f.IncludeInMyAccounts)
             .Sum(f => f.Amount);
 
+        // SaldoLivre usa apenas gastos PRÓPRIOS (SubtractFromUltra=false)
+        // Terceiros (SubtractFromUltra=true) são reembolsados — não saem do bolso de Leandro
         var nonInfoExpenses = expenseEntries
             .Where(e => !e.InformationalOnly)
             .ToList();
 
-        var gastosPorFonte = nonInfoExpenses
+        var meusProprios = nonInfoExpenses.Where(e => !e.SubtractFromUltra).ToList();
+
+        var gastosPorFonte = meusProprios
             .GroupBy(e => e.Source.ToString())
             .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
 
-        var totalGastosPorFonte = nonInfoExpenses.Sum(e => e.Amount);
+        var totalGastosPorFonte = meusProprios.Sum(e => e.Amount);
 
         var saldoLivre = totalReceitas
                        - totalObrigacoesFixas

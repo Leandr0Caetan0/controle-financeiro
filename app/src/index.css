@@ -2,24 +2,26 @@
 
 @theme {
   --color-nubank: #7C3AED;
-  --color-nubank-light: #EDE9FE;
   --color-amazon: #2563EB;
-  --color-amazon-light: #DBEAFE;
   --color-piques: #D97706;
-  --color-piques-light: #FEF3C7;
   --color-terceiros: #15803D;
-  --color-terceiros-light: #DCFCE7;
-  --color-danger: #DC2626;
-  --color-danger-light: #FEE2E2;
-  --font-mono: 'JetBrains Mono', 'Cascadia Code', monospace;
+}
+
+/* Variáveis de fonte fora do @theme (bug tailwindcss/vite 4.0.x) */
+:root {
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
   --font-sans: 'Inter', system-ui, sans-serif;
 }
 
+* { box-sizing: border-box; }
+
 body {
   font-family: var(--font-sans);
-  background-color: #0F0F13;
-  color: #F1F0F5;
+  background-color: #F1F5F9;
+  color: #0F172A;
   min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .mono {
@@ -27,6 +29,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #1A1A24; }
-::-webkit-scrollbar-thumb { background: #3F3F5A; border-radius: 3px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #F1F5F9; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }

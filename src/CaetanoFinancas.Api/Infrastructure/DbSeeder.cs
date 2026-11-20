@@ -23,7 +23,7 @@ public static class DbSeeder
         { 9,  6_236.32m }, // Setembro – visível na planilha
         { 10, 7_994.01m }, // Outubro  – visível na planilha
         { 11, 0m        }, // Novembro – preencher
-        { 12, 4_699.79m }, // Dezembro – aprox. da planilha
+        { 12, 5_000.64m }, // Dezembro – Nu Fatura Total confirmado na planilha
     };
 
     public static async Task SeedAsync(AppDbContext db)
@@ -78,9 +78,15 @@ public static class DbSeeder
                 db.IncomeItems.Add(new IncomeItem { Title = "CFT Jaum",    Category = IncomeCategory.Cft,    Amount = 900.00m,   Recurrence = Recurrence.Mensal,  ReceivedDay = 9,  MonthCycleId = cycleId });
                 db.IncomeItems.Add(new IncomeItem { Title = "PPR",         Category = IncomeCategory.Ppr,    Amount = 1_066.78m, Recurrence = Recurrence.Pontual, ReceivedDay = 10, MonthCycleId = cycleId });
             }
+            else if (month == 12)
+            {
+                // Dezembro: férias parciais → CLT Líquido Próprio = R$5.287,72 (confirmado planilha)
+                db.IncomeItems.Add(new IncomeItem { Title = "CLT Líquido Próprio", Category = IncomeCategory.Clt, Amount = 5_287.72m, Recurrence = Recurrence.Pontual, ReceivedDay = 5, MonthCycleId = cycleId });
+                db.IncomeItems.Add(new IncomeItem { Title = "CFT Jaum",            Category = IncomeCategory.Cft, Amount = 900.00m,   Recurrence = Recurrence.Mensal,  ReceivedDay = 9, MonthCycleId = cycleId });
+            }
             else
             {
-                // Padrão (Jul, Set, Out, Dez) = CLT + CFT Jaum
+                // Padrão (Jul, Set, Out) = CLT + CFT Jaum
                 db.IncomeItems.Add(new IncomeItem { Title = "CLT Líquido", Category = IncomeCategory.Clt, Amount = 6_336.05m, Recurrence = Recurrence.Mensal, ReceivedDay = 5, MonthCycleId = cycleId });
                 db.IncomeItems.Add(new IncomeItem { Title = "CFT Jaum",    Category = IncomeCategory.Cft, Amount = 900.00m,   Recurrence = Recurrence.Mensal, ReceivedDay = 9, MonthCycleId = cycleId });
             }
@@ -138,19 +144,23 @@ public static class DbSeeder
         });
 
         // Spotify ÷ 6 — Dia 20 (eu + 5 amigos; Jaum paga a cota dele separado)
+        // SubtractFromUltraInvoice=false: ainda não está na fórmula da planilha
+        // Quando adicionar (E7*6) na fórmula, mudar para true com FullInvoiceAmount=40.90
         db.FixedObligations.Add(new FixedObligation
         {
             Title = "Spotify (÷6) — Dia 20", Amount = 6.82m, FullInvoiceAmount = 40.90m, SplitPeople = 6,
             DueDay = 20, Source = ExpenseSource.NubankUltra, Category = "Streaming",
-            SubtractFromUltraInvoice = true, CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
+            SubtractFromUltraInvoice = false, CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
         });
 
         // Disney+ ÷ 4 — Dia 23 (Meli+)
+        // SubtractFromUltraInvoice=false: ainda não está na fórmula da planilha
+        // Quando adicionar (E8*4) na fórmula, mudar para true com FullInvoiceAmount=59.90
         db.FixedObligations.Add(new FixedObligation
         {
-            Title = "Disney+ (÷4) — Dia 23", Amount = 14.98m, FullInvoiceAmount = 59.92m, SplitPeople = 4,
+            Title = "Disney+ (÷4) — Dia 23", Amount = 14.98m, FullInvoiceAmount = 59.90m, SplitPeople = 4,
             DueDay = 23, Source = ExpenseSource.NubankUltra, Category = "Streaming",
-            SubtractFromUltraInvoice = true, CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
+            SubtractFromUltraInvoice = false, CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
         });
 
         // YouTube Premium — Dia 18
@@ -188,7 +198,7 @@ public static class DbSeeder
         // Internet Voxx — Venc. 11
         db.FixedObligations.Add(new FixedObligation
         {
-            Title = "Internet Voxx — Venc. 11", Amount = 125.00m, DueDay = 11,
+            Title = "Internet Voxx — Venc. 11", Amount = 145.00m, DueDay = 11,
             Source = ExpenseSource.BoletoOutros, Category = "Moradia",
             SubtractFromUltraInvoice = false, CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
         });
@@ -213,45 +223,73 @@ public static class DbSeeder
             Paid = false, MonthCycleId = cycleId
         });
 
-        // WellHub Sogra (repasse mensal da Sogra)
+        // WellHub Sogra (repasse mensal da Sogra — NÃO sai do bolso de Leandro)
         db.FixedObligations.Add(new FixedObligation
         {
             Title = "WellHub Sogra — Dia 11", Amount = 59.99m, FullInvoiceAmount = 59.99m,
             DueDay = 11, Source = ExpenseSource.NubankUltra, Category = "Saúde",
-            SubtractFromUltraInvoice = false, // cobrado via terceiro, não entra na dedução direta
-            CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
+            SubtractFromUltraInvoice = false,
+            CriticalAlert = false, IncludeInMyAccounts = false, Paid = false, MonthCycleId = cycleId
         });
+
+        // Óculos - Ótica 3B 02/02 (parcela específica de Dezembro)
+        if (month == 12)
+        {
+            db.FixedObligations.Add(new FixedObligation
+            {
+                Title = "Óculos - Ótica 3B — 02/02", Amount = 122.50m, DueDay = 2,
+                Source = ExpenseSource.AmazonCard, Category = "Saúde",
+                InstallmentCurrent = 2, InstallmentTotal = 2,
+                SubtractFromUltraInvoice = false, CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
+            });
+            db.FixedObligations.Add(new FixedObligation
+            {
+                Title = "[CAR] Conserto Embreagem — 04/10", Amount = 222.00m, DueDay = 10,
+                Source = ExpenseSource.AmazonCard, Category = "Carro",
+                InstallmentCurrent = 4, InstallmentTotal = 10,
+                SubtractFromUltraInvoice = false, CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
+            });
+        }
     }
 
     private static void SeedDecemberEntries(AppDbContext db, string cycleId)
     {
         var dec = new DateOnly(2026, 12, 1);
 
-        // [J] Disney+ de Xus (Júlio paga → Xus repassa → Leandro)
-        // Valor = R$16,73 conforme planilha Dezembro/2026
-        db.ExpenseEntries.Add(new ExpenseEntry
-        {
-            Description = "Disney+ [J] Xus", Amount = 16.73m, Date = dec, DueDay = 23,
-            Source = ExpenseSource.NubankUltra, OwnerId = "xus", SubTag = Entities.SubTag.J,
-            Tag = "Streaming", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false,
-            MonthCycleId = cycleId
-        });
+        // ── Xus (SubtractFromUltra=true: aparecem na fatura Ultra, Xus paga de volta) ──
 
-        // Spotify Jaum + Thais (2 cotas × R$6,82 = R$13,64 — NÃO abate da fatura pois Jaum paga separado)
+        // [J] Disney+ de Xus — Informativo: Júlio paga via Xus → Leandro recebe de volta
+        // InformationalOnly=true: NÃO entra em TotalMeusGastos nem TotalTerceiros (prova real não afetada)
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "Disney+ [J] Xus", Amount = 16.73m, Date = dec, DueDay = 23, Source = ExpenseSource.NubankUltra, OwnerId = "xus", SubTag = Entities.SubTag.J, Tag = "Streaming", SubtractFromUltra = false, InformationalOnly = true, CriticalAlert = false, MonthCycleId = cycleId });
+
+        // Netflix Xus — Informativo: Xus paga a metade dela → coberto pelo (E6*2) nas assinaturas
+        // InformationalOnly=true: NÃO entra em TotalMeusGastos (prova real não afetada)
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "Netflix Xus", Amount = 29.95m, Date = dec, DueDay = 12, Source = ExpenseSource.NubankUltra, OwnerId = "xus", SubTag = null, Tag = "Streaming", SubtractFromUltra = false, InformationalOnly = true, CriticalAlert = false, MonthCycleId = cycleId });
+
+        // Compras pessoais Xus no Nubank
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "RiHappy - 02/02", Amount = 107.49m, Date = new DateOnly(2026, 11, 5), Source = ExpenseSource.NubankUltra, OwnerId = "xus", SubTag = null, Tag = "Compras", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "Cotton On Catuai", Amount = 129.80m, Date = new DateOnly(2026, 11, 5), Source = ExpenseSource.NubankUltra, OwnerId = "xus", SubTag = null, Tag = "Compras", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "½ Balloarts Xus", Amount = 47.90m, Date = new DateOnly(2026, 11, 7), Source = ExpenseSource.NubankUltra, OwnerId = "xus", SubTag = null, Tag = "Entretenimento", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "Balões Lara", Amount = 37.00m, Date = new DateOnly(2026, 11, 9), Source = ExpenseSource.NubankUltra, OwnerId = "xus", SubTag = null, Tag = "Compras", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "½ Kaloba + Livro - Raia Xus", Amount = 47.65m, Date = new DateOnly(2026, 11, 9), Source = ExpenseSource.NubankUltra, OwnerId = "xus", SubTag = null, Tag = "Farmácia", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+
+        // Spotify Jaum + Thais — Informativo: cotas de Jaum (não abate, não está na fórmula)
+        // InformationalOnly=true: rastreia o que Jaum deve sem afetar prova real
         db.ExpenseEntries.Add(new ExpenseEntry
         {
-            Description = "Spotify [J] Jaum + Thais (não abatido)", Amount = 13.64m, Date = dec, DueDay = 20,
+            Description = "Spotify [J] Jaum + Thais", Amount = 13.64m, Date = dec, DueDay = 20,
             Source = ExpenseSource.NubankUltra, OwnerId = "jaum", SubTag = Entities.SubTag.J,
-            Tag = "Streaming", SubtractFromUltra = false, InformationalOnly = false, CriticalAlert = false,
+            Tag = "Streaming", SubtractFromUltra = false, InformationalOnly = true, CriticalAlert = false,
             MonthCycleId = cycleId
         });
 
-        // WellHub Sogra (repasse Sogra → aparece na fatura Ultra de Leandro)
+        // WellHub Sogra — Informativo: cobrado via E11 nas assinaturas; rastreia que Sogra deve pagar
+        // InformationalOnly=true: NÃO entra em TotalTerceiros (já está em TotalAssinaturas via FixedObligation)
         db.ExpenseEntries.Add(new ExpenseEntry
         {
             Description = "WellHub Sogra (repasse Dez)", Amount = 59.99m, Date = dec, DueDay = 11,
             Source = ExpenseSource.NubankUltra, OwnerId = "sogra", SubTag = Entities.SubTag.C,
-            Tag = "Saúde", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false,
+            Tag = "Saúde", SubtractFromUltra = false, InformationalOnly = true, CriticalAlert = false,
             MonthCycleId = cycleId
         });
 
@@ -301,5 +339,96 @@ public static class DbSeeder
             SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false,
             MonthCycleId = cycleId
         });
+
+        // ── Meus gastos pessoais no Nubank (SubtractFromUltra=false) ─────────
+        // Soma desses valores = "Gastos ULTRA - Venc. 09" = Prova Real
+        // Fonte: coluna "Nubank" da planilha Dezembro/2026 (gastos feitos em Novembro)
+        var nuEntries = new[]
+        {
+            ("Frangos Lara",                        53.00m,   "02/11", "Alimentação"),
+            ("Mixer + Potes - Havan",              172.86m,   "02/11", "Casa"),
+            ("Bananas - Maxi Carne",                 9.00m,   "03/11", "Alimentação"),
+            ("Soro + camisinha + sorvetes",         52.96m,   "05/11", "Farmácia"),
+            ("Insano Burger",                       58.00m,   "05/11", "Alimentação"),
+            ("Ovada",                               19.99m,   "06/11", "Alimentação"),
+            ("Camiseta renner - niver pat",         79.90m,   "06/11", "Vestuário"),
+            ("Estacionamento",                      18.00m,   "06/11", "Transporte"),
+            ("McDonalds",                          100.80m,   "06/11", "Alimentação"),
+            ("Suco Duque",                           8.00m,   "07/11", "Alimentação"),
+            ("Lenço umidecido",                      9.99m,   "07/11", "Higiene"),
+            ("½ Balloarts",                         47.90m,   "07/11", "Entretenimento"),
+            ("Frutas Feira",                        21.00m,   "08/11", "Alimentação"),
+            ("Lanchonete Toyota",                   11.00m,   "08/11", "Alimentação"),
+            ("Carnes Assadas",                     110.00m,   "09/11", "Alimentação"),
+            ("[CAR] Gasolina + Snickers",          161.00m,   "09/11", "Transporte"),
+            ("Refri Adélia",                        12.00m,   "09/11", "Alimentação"),
+            ("½ Kaloba + Livro - Raia",             47.65m,   "09/11", "Farmácia"),
+            ("ULTRAVIOLETA (?)",                    89.00m,   "09/11", "Outros"),
+            ("2 Apitamil Pepti - Mercado Livre",   345.98m,   "09/11", "Bebê"),
+            ("[MOTO] Gasolina",                     86.00m,   "12/11", "Transporte"),
+            ("Soro - Farmacia São João",             6.99m,   "12/11", "Farmácia"),
+            ("[MCD] Compras Muffato",               18.37m,   "12/11", "Alimentação"),
+            ("[MCD] Carnes Fujarra",                50.95m,   "12/11", "Alimentação"),
+            ("[MCD] Compras Muffato",              314.82m,   "14/11", "Alimentação"),
+            ("Alcool em gel",                        8.99m,   "14/11", "Farmácia"),
+            ("77 Hamburgueria",                     97.00m,   "15/11", "Alimentação"),
+            ("Chopp IPA - Serras Gerais",           40.00m,   "15/11", "Entretenimento"),
+            ("Soro + NAN - Farmacia Popular",       97.80m,   "15/11", "Farmácia"),
+            ("Chopp - Feira Cincão",                10.00m,   "15/11", "Entretenimento"),
+            ("Pasteis Feira Cincão",                30.00m,   "15/11", "Alimentação"),
+            ("Bebidas Pasteis",                     10.00m,   "15/11", "Alimentação"),
+            ("3 - Domperidora",                     22.58m,   "15/11", "Farmácia"),
+            ("Droga Raia",                          25.39m,   "18/11", "Farmácia"),
+            ("[CAR] Gasolina",                     150.00m,   "18/11", "Transporte"),
+            ("Sonhos - Adelia",                      8.00m,   "18/11", "Alimentação"),
+            // TOTAL: R$2.404,92 ✓ = "Gastos ULTRA - Venc. 09" → Prova Real = 0
+        };
+        foreach (var (desc, amt, dateStr, tag) in nuEntries)
+        {
+            var parts = dateStr.Split('/');
+            var d = new DateOnly(2026, int.Parse(parts[1]), int.Parse(parts[0]));
+            db.ExpenseEntries.Add(new ExpenseEntry
+            {
+                Description = desc, Amount = amt, Date = d,
+                Source = ExpenseSource.NubankUltra, OwnerId = null, SubTag = null,
+                Tag = tag, SubtractFromUltra = false, InformationalOnly = false, CriticalAlert = false,
+                MonthCycleId = cycleId
+            });
+        }
+
+        // ── Amazon lançamentos Dezembro/2026 — Vence dia 10 — TOTAL: R$1.074,30 ──
+        var amzEntries = new (string Desc, decimal Amt, string DateStr, string Tag)[]
+        {
+            ("[CAR] Gasolina",                     357.00m, "28/10", "Transporte"),
+            ("Hachimitsu",                          90.00m, "28/10", "Alimentação"),
+            ("Renato Sucos",                        26.00m, "28/10", "Alimentação"),
+            ("Renato Sucos",                        25.99m, "28/10", "Alimentação"),
+            ("Plein Orla",                          93.50m, "29/10", "Compras"),
+            ("Chopp Mestizzo",                      15.00m, "30/10", "Entretenimento"),
+            ("Barbearia",                          182.00m, "30/10", "Beleza"),
+            ("Lanchonete Tubarão",                  84.00m, "31/10", "Alimentação"),
+            ("Cervejas Conveniaencia - Ver Cirlei", 31.00m, "01/11", "Alimentação"),
+            ("selfitcidadejardim Be (Golpe)",       39.90m, "06/11", "Estorno"),
+            ("Dpg*mt Club Bi (Golpe)",             129.91m, "06/11", "Estorno"),
+        };
+        foreach (var (aDesc, aAmt, aDate, aTag) in amzEntries)
+        {
+            var p = aDate.Split('/');
+            var d2 = new DateOnly(2026, int.Parse(p[1]), int.Parse(p[0]));
+            db.ExpenseEntries.Add(new ExpenseEntry
+            {
+                Description = aDesc, Amount = aAmt, Date = d2,
+                Source = ExpenseSource.AmazonCard, OwnerId = null, SubTag = null,
+                Tag = aTag, SubtractFromUltra = false, InformationalOnly = false, CriticalAlert = false,
+                MonthCycleId = cycleId
+            });
+        }
+
+        // ── Dinheiro / Piques lançamentos Dezembro/2026 — TOTAL: R$413,98 ──
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "Compra HGLG11 - FII",         Amount = 145.50m, Date = new DateOnly(2026, 11, 10), Source = ExpenseSource.Piques, Tag = "Investimento", SubtractFromUltra = false, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "Compra AUPO11 - ETF",         Amount = 111.93m, Date = new DateOnly(2026, 11, 10), Source = ExpenseSource.Piques, Tag = "Investimento", SubtractFromUltra = false, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "Fut Toyota Heber",            Amount =  15.00m, Date = new DateOnly(2026, 11, 16), Source = ExpenseSource.Piques, Tag = "Carro",        SubtractFromUltra = false, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "Compra BBAS3 - Ação Brasileira", Amount = 141.55m, Date = new DateOnly(2026, 11, 19), Source = ExpenseSource.Piques, Tag = "Investimento", SubtractFromUltra = false, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+        // TOTAL Piques: R$413,98 ✓
     }
 }

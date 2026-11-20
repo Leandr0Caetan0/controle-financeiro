@@ -3,12 +3,21 @@ using CaetanoFinancas.Api.Infrastructure;
 using CaetanoFinancas.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Serviços ──────────────────────────────────────────────────────────────────
 
 builder.Services.AddOpenApi();
+
+// Evita referência circular + serializa enums como string (ex: "Exata" em vez de 0)
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 var dbPath = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Data Source=caetanofinancas.db";
