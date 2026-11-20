@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CaetanoFinancas.Api/CaetanoFinancas.Api.csproj" />
+  <Project Path="CaetanoFinancas.Tests/CaetanoFinancas.Tests.csproj" />
+</Solution>
