@@ -11,6 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 
+// CORS — permite chamadas do frontend Vercel e localhost
+builder.Services.AddCors(options => options.AddDefaultPolicy(p =>
+    p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+
 // Evita referência circular + serializa enums como string (ex: "Exata" em vez de 0)
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -37,6 +41,8 @@ using (var scope = app.Services.CreateScope())
     db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
     await DbSeeder.SeedAsync(db);
 }
+
+app.UseCors();
 
 // ── OpenAPI / Scalar ──────────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
