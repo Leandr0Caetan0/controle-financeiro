@@ -134,14 +134,22 @@ public class CyclesController : ControllerBase
     [HttpPost("{id}/entries")]
     public async Task<IActionResult> AddEntries(string id, [FromBody] List<ExpenseEntry> entries)
     {
-        if (!await _db.MonthCycles.AnyAsync(c => c.Id == id))
-            return NotFound();
+        var cycle = await _db.MonthCycles.FindAsync(id);
+        if (cycle is null) return NotFound();
 
         foreach (var entry in entries)
         {
             entry.Id = 0;
             entry.MonthCycleId = id;
             _db.ExpenseEntries.Add(entry);
+
+            // Lançamento pessoal no Nubank Ultra → atualiza fatura automaticamente
+            if (entry.Source == ExpenseSource.NubankUltra &&
+                !entry.SubtractFromUltra &&
+                !entry.InformationalOnly)
+            {
+                cycle.UltraInvoiceTotal += entry.Amount;
+            }
         }
 
         await _db.SaveChangesAsync();
@@ -183,6 +191,16 @@ public class CyclesController : ControllerBase
             .FirstOrDefaultAsync(e => e.Id == entryId && e.MonthCycleId == id);
 
         if (entry is null) return NotFound();
+
+        // Se era gasto pessoal no Nubank Ultra, reverte da fatura
+        if (entry.Source == ExpenseSource.NubankUltra &&
+            !entry.SubtractFromUltra &&
+            !entry.InformationalOnly)
+        {
+            var cycle = await _db.MonthCycles.FindAsync(id);
+            if (cycle is not null)
+                cycle.UltraInvoiceTotal = Math.Max(0m, cycle.UltraInvoiceTotal - entry.Amount);
+        }
 
         _db.ExpenseEntries.Remove(entry);
         await _db.SaveChangesAsync();

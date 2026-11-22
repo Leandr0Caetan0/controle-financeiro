@@ -23,7 +23,7 @@ public static class DbSeeder
         { 9,  6_236.32m },
         { 10, 7_994.01m },
         { 11, 0m        },
-        { 12, 5_000.64m },
+        { 12, 6_202.70m },
     };
 
     public static async Task SeedAsync(AppDbContext db)
@@ -127,12 +127,12 @@ public static class DbSeeder
             SubtractFromUltraInvoice = true, CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
         });
 
-        // Spotify ÷ 6 — Dia 20 (SubtractFromUltraInvoice=false até incluir na fórmula)
+        // Spotify ÷ 6 — Dia 20 (cobrado em 20/11 — SubtractFromUltraInvoice=true: valor cheio entra na Prova Real)
         db.FixedObligations.Add(new FixedObligation
         {
             Title = "Spotify (÷6) — Dia 20", Amount = 6.82m, FullInvoiceAmount = 40.90m, SplitPeople = 6,
             DueDay = 20, Source = ExpenseSource.NubankUltra, Category = "Streaming",
-            SubtractFromUltraInvoice = false, CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
+            SubtractFromUltraInvoice = true, CriticalAlert = false, IncludeInMyAccounts = true, Paid = false, MonthCycleId = cycleId
         });
 
         // Disney+ ÷ 4 — Dia 23 (SubtractFromUltraInvoice=false até incluir na fórmula)
@@ -253,11 +253,11 @@ public static class DbSeeder
         db.ExpenseEntries.Add(new ExpenseEntry { Description = "Abacate - Feira Zerão", Amount = 5.00m, Date = new DateOnly(2026, 11, 8), Source = ExpenseSource.NubankUltra, OwnerId = "xus", SubTag = null, Tag = "Alimentação", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
         db.ExpenseEntries.Add(new ExpenseEntry { Description = "½ Vacina Lara - Unimed", Amount = 403.75m, Date = new DateOnly(2026, 11, 21), Source = ExpenseSource.NubankUltra, OwnerId = "xus", SubTag = null, Tag = "Saúde", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
 
-        // Spotify Jaum + Thais — Informativo (rastreamento; Jaum paga a cota dele separado)
-        db.ExpenseEntries.Add(new ExpenseEntry { Description = "Spotify Jaum + Thais", Amount = 13.64m, Date = dec, DueDay = 20, Source = ExpenseSource.NubankUltra, OwnerId = "jaum", SubTag = Entities.SubTag.J, Tag = "Streaming", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+        // Spotify Jaum + Thais — Informativo: cotas de Jaum/Thais (pago via Pix, não pela fatura Ultra)
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "Spotify Jaum + Thais", Amount = 13.64m, Date = dec, DueDay = 20, Source = ExpenseSource.NubankUltra, OwnerId = "jaum", SubTag = Entities.SubTag.J, Tag = "Streaming", SubtractFromUltra = false, InformationalOnly = true, CriticalAlert = false, MonthCycleId = cycleId });
 
-        // Responsabilidade CFT Jaum — valor mensal que Jaum repassa
-        db.ExpenseEntries.Add(new ExpenseEntry { Description = "CFT Responsabilidade Técnica (Jaum)", Amount = 900.00m, Date = dec, DueDay = 9, Source = ExpenseSource.NubankUltra, OwnerId = "jaum", SubTag = Entities.SubTag.J, Tag = "Repasse", SubtractFromUltra = true, InformationalOnly = false, CriticalAlert = false, MonthCycleId = cycleId });
+        // CFT Jaum — recebido via Pix diretamente, não passa pela fatura do Nubank Ultra
+        db.ExpenseEntries.Add(new ExpenseEntry { Description = "CFT Responsabilidade Técnica (Jaum)", Amount = 900.00m, Date = dec, DueDay = 9, Source = ExpenseSource.NubankUltra, OwnerId = "jaum", SubTag = Entities.SubTag.J, Tag = "Repasse", SubtractFromUltra = false, InformationalOnly = true, CriticalAlert = false, MonthCycleId = cycleId });
 
         // WellHub Sogra — Informativo
         db.ExpenseEntries.Add(new ExpenseEntry { Description = "WellHub Sogra (repasse Dez)", Amount = 59.99m, Date = dec, DueDay = 26, Source = ExpenseSource.NubankUltra, OwnerId = "sogra", SubTag = Entities.SubTag.C, Tag = "Saúde", SubtractFromUltra = false, InformationalOnly = true, CriticalAlert = false, MonthCycleId = cycleId });
@@ -319,8 +319,9 @@ public static class DbSeeder
             ("Doces + Bebidas - Sur L Amou",        63.00m,  "20/11", "Entretenimento"),
             ("Aperol - Mestizzo",                   32.00m,  "20/11", "Entretenimento"),
             ("[MCD] Compras Muffato",              130.06m,  "20/11", "Alimentação"),
-            ("Magrelo Lanches",                             47.00m,  "21/11", "Alimentação"),
-            ("Sprite 2L - Tremembeer",              11.00m,  "21/11", "Alimentação"),
+            ("Magrelo Lanches",                    47.00m,  "21/11", "Alimentação"),
+            ("½ Vacina Lara - Unimed",            403.75m,  "21/11", "Saúde"),
+            ("Sprite 2L - Tremembeer",             11.00m,  "21/11", "Alimentação"),
             ("Soro - Farmacia Ideal",               15.00m,  "21/11", "Farmácia"),
             ("Coronas - Michel",                    24.00m,  "21/11", "Entretenimento"),
         };
