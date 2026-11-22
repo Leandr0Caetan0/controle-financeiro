@@ -13,7 +13,7 @@ RUN dotnet publish src/CaetanoFinancas.Api/CaetanoFinancas.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Pasta persistente para o SQLite (monte um volume aqui no Render)
+# Pasta persistente para o SQLite (o volume do Fly.io é montado aqui)
 RUN mkdir -p /app/data
 
 COPY --from=build /app/publish .

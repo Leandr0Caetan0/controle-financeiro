@@ -1,0 +1,21 @@
+# Artefatos de build .NET (do Windows quebram o build no Linux)
+**/bin/
+**/obj/
+
+# Banco local: o banco de produção fica no volume /app/data do Fly.io
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# Frontend (vai para o Vercel, não faz parte da imagem da API)
+app/
+node_modules/
+
+# Git, IDE e documentação
+.git/
+.gitignore
+.vscode/
+.graphify/
+*.md
+scripts/
+fly.toml
