@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { BASE } from '../api/client';
 
 type Sheet = 'receitas' | 'obrigacoes' | 'lancamentos' | 'ultra';
 
@@ -66,7 +67,7 @@ export function CsvImportModal({ cycleId, onClose, onImported }: Props) {
     setImporting(true);
     setError(null);
     try {
-      const res = await fetch('/api/import/csv', {
+      const res = await fetch(`${BASE}/import/csv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cycleId, sheet, rows: parsed.rows }),
