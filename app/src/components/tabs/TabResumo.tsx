@@ -75,9 +75,9 @@ export function TabResumo({ detail }: Props) {
   }, [cycle.fixedObligations]);
 
   const statusCfg = {
-    Exata:          { label: 'Prova Real OK',  color: 'text-emerald-600', icon: '✅' },
-    Arredondamento: { label: 'Arredondamento', color: 'text-amber-600',   icon: '🟡' },
-    Divergente:     { label: 'Divergente',     color: 'text-red-600',     icon: '❌' },
+    Exata:          { label: 'Prova Real OK ✓',   bg: 'bg-emerald-50 border-emerald-200', color: 'text-emerald-700', icon: '✅' },
+    Arredondamento: { label: 'Prova Real OK ✓',   bg: 'bg-emerald-50 border-emerald-200', color: 'text-emerald-700', icon: '✅' },
+    Divergente:     { label: '⚠ DIVERGENTE',      bg: 'bg-red-50 border-red-400 ring-2 ring-red-200', color: 'text-red-700 font-bold', icon: '❌' },
   };
   const st = statusCfg[reconciliation.status] ?? statusCfg.Divergente;
 
@@ -209,8 +209,15 @@ export function TabResumo({ detail }: Props) {
               </span>
             </div>
           </div>
-          <div className={`mt-auto rounded-lg px-3 py-2 text-center text-sm font-semibold ${st.color}`}>
-            {st.icon} {st.label}
+          <div className={`mt-auto rounded-lg border px-3 py-2.5 text-center text-sm ${st.bg} ${st.color}`}>
+            {reconciliation.status === 'Divergente' ? (
+              <div className="flex flex-col gap-0.5">
+                <span className="font-bold text-base">{st.icon} {st.label}</span>
+                <span className="text-xs font-normal opacity-80">diff: {brl(reconciliation.diferenca)} — adicione os lançamentos faltantes</span>
+              </div>
+            ) : (
+              <span>{st.icon} {st.label} <span className="opacity-60 text-xs font-normal">(diff: {brl(Math.abs(reconciliation.diferenca))})</span></span>
+            )}
           </div>
         </motion.div>
       </div>

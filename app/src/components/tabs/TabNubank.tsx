@@ -101,11 +101,21 @@ export function TabNubank({ detail, onUpdated }: Props) {
           <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-1">Terceiros</p>
           <p className="mono text-2xl font-bold text-blue-600">{brl(reconciliation.totalTerceiros)}</p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className={`card p-4 ${Math.abs(reconciliation.diferenca) > 0.02 ? 'border-red-300' : ''}`}>
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-1">Diferença</p>
-          <p className={`mono text-2xl font-bold ${Math.abs(reconciliation.diferenca) <= 0.02 ? 'text-emerald-600' : 'text-red-600'}`}>
-            {brl(reconciliation.diferenca)}
-          </p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          className={`card p-4 ${Math.abs(reconciliation.diferenca) > 0.02 ? 'border-red-400 ring-2 ring-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50'}`}
+        >
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-1">Prova Real</p>
+          {Math.abs(reconciliation.diferenca) <= 0.02 ? (
+            <>
+              <p className="mono text-2xl font-bold text-emerald-600">{brl(reconciliation.diferenca)}</p>
+              <p className="text-xs text-emerald-600 mt-0.5">✅ OK {Math.abs(reconciliation.diferenca) > 0 ? '(arredondamento)' : ''}</p>
+            </>
+          ) : (
+            <>
+              <p className="mono text-2xl font-bold text-red-700">{brl(reconciliation.diferenca)}</p>
+              <p className="text-xs text-red-600 font-semibold mt-0.5">❌ DIVERGENTE — verifique lançamentos</p>
+            </>
+          )}
         </motion.div>
       </div>
 
