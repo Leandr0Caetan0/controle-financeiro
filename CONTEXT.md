@@ -11,7 +11,7 @@ Aplicação web para **controle financeiro pessoal** do Leandro Caetano da Silva
 | Camada | Tecnologia |
 |--------|-----------|
 | Frontend | Vite + React 19 + TypeScript + Tailwind CSS v4.0.9 |
-| Backend | .NET 10 (Minimal APIs) |
+| Backend | .NET 10 (Web API com Controllers clássicos, `[ApiController]`) |
 | Banco de dados | SQLite + EF Core 10 (WAL mode) |
 | Deploy Frontend | Vercel (`controle-financeiro-sigma-drab.vercel.app`) |
 | Deploy Backend | Fly.io — **pendente** (grátis, região São Paulo `gru`) |
@@ -38,12 +38,16 @@ controle-financeiro/
 │   │   └── DbSeeder.cs         # Seed Jul-Dez 2026 com dados reais
 │   ├── Services/
 │   │   └── FinancialCalculationService.cs
-│   ├── Endpoints/
-│   │   ├── CycleEndpoints.cs   # CRUD + POST /next (clonar mês)
-│   │   └── ImportEndpoints.cs  # POST /api/import/csv
-│   └── Program.cs              # CORS, WAL, seed, JSON options
+│   ├── Controllers/
+│   │   ├── CyclesController.cs            # /api/cycles: CRUD + POST /next (clonar mês)
+│   │   ├── ImportController.cs            # POST /api/import/csv
+│   │   ├── MonthCyclesController.cs       # /api/month-cycles (legado)
+│   │   └── ThirdPartyPersonsController.cs # /api/third-party-persons
+│   ├── Dtos/                   # CycleDtos.cs, ImportDtos.cs (records)
+│   └── Program.cs              # AddControllers, CORS, WAL, seed, JSON options
 │
 ├── Dockerfile                  # Build multi-stage .NET 10, porta 8080
+├── .dockerignore               # Exclui bin/obj, *.db, app/ da imagem
 ├── fly.toml                    # Fly.io config (gru/SP, volume /app/data, 256mb)
 └── scripts/
     └── backup-sqlite.ps1       # Backup SQLite → Google Drive (PowerShell)
@@ -148,6 +152,12 @@ Obrigações fixas mensais: Aluguel (800), Punto 13/23 (1340.78), Amazon Prime (
 4. **Referência circular JSON (500)** → `ReferenceHandler.IgnoreCycles`
 5. **Tailwind CSS v4 crash no dev server** → pinado em v4.0.9, fontes em `:root` fora do `@theme`
 6. **Vercel 404 para /api/*** → `VITE_API_URL` env var + CORS no backend
+7. **Minimal APIs → Controllers clássicos** → `Endpoints/` removida; rotas e JSON idênticos.
+   No `Program.cs` o JSON agora é configurado em `AddControllers().AddJsonOptions(...)`
+   (`ConfigureHttpJsonOptions` só vale para Minimal APIs) e
+   `SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true` evita 400 nas entidades com navegação.
+8. **Prefixo `/api` em produção** → `BASE` em `client.ts` = `${VITE_API_URL}/api` (exportado e usado também no `CsvImportModal`).
+   `VITE_API_URL` deve ser SEM `/api` no final.
 
 ---
 
@@ -170,26 +180,36 @@ fly auth signup   # pede cartão para verificação, não cobra no free tier
 
 ### Comandos (na raiz do projeto)
 ```bash
-git add . && git commit -m "deploy: Dockerfile + fly.toml"
-git push
-fly deploy
+git add . && git commit -m "deploy: controllers + Dockerfile + fly.toml" && git push
+fly auth login
+fly apps create caetano-financas-api     # se o nome estiver ocupado, mude `app` no fly.toml
 fly volumes create data --region gru --size 1
-fly deploy
-fly status   # pega a URL: https://caetano-financas-api.fly.dev
+fly deploy --ha=false                    # 1 máquina só (SQLite em volume)
+fly status
 ```
+Teste: `https://caetano-financas-api.fly.dev/api/cycles` deve devolver JSON.
 
 ### Vercel após o deploy
 ```
 Settings → Environment Variables
-VITE_API_URL = https://caetano-financas-api.fly.dev
+VITE_API_URL = https://caetano-financas-api.fly.dev   (SEM /api no final)
 → Redeploy
 ```
+
+### Observações
+- Terminal da máquina nova: `git`/`dotnet` no cmd podem falhar com `'rtk' is not recognized`;
+  usar `powershell -NoProfile -Command "..."`.
+- `app/src/types/api.ts` e `app/src/vite-env.d.ts` NÃO estão versionados (o build `vite build` funciona,
+  mas `npm run typecheck` falha). Recriar/commitar esses arquivos.
+- Saldo Livre de Dez/2026 calculado hoje pela API: -R$1.240,79 (o valor -1.240,77 acima está desatualizado).
 
 ---
 
 ## Itens Pendentes / Próximos Passos
 
-- [ ] **DEPLOY**: rodar `fly deploy` + criar volume + configurar VITE_API_URL no Vercel
+- [x] Migrar API para Controllers clássicos (build OK, 6/6 testes, smoke test OK)
+- [ ] **DEPLOY**: criar app + volume + `fly deploy --ha=false` + configurar VITE_API_URL no Vercel
+- [ ] Versionar `app/src/types/api.ts` e `app/src/vite-env.d.ts`
 - [ ] Ativar Spotify na Prova Real: `SubtractFromUltraInvoice=true`, `FullInvoiceAmount=40.90`
 - [ ] Ativar Disney+ na Prova Real: `SubtractFromUltraInvoice=true`, `FullInvoiceAmount=59.90`
 - [ ] Preencher `UltraInvoiceTotal` para Jul, Ago, Nov/2026 (atualmente = 0)
@@ -203,32 +223,3 @@ VITE_API_URL = https://caetano-financas-api.fly.dev
 - GitHub: `https://github.com/Leandr0Caetan0/controle-financeiro`
 - Branch: `main`
 - Vercel: conectado ao GitHub (auto-deploy no push)
-
----
-
-## 🤖 Prompt para nova sessão de desenvolvimento
-
-> Cole este prompt no início do chat em qualquer máquina para retomar o contexto completo:
-
-```
-Você é um engenheiro .NET e React sênior continuando o desenvolvimento do projeto CaetanoFinanças.
-
-Leia o arquivo CONTEXT.md na raiz do projeto — ele contém todo o contexto: o que é a aplicação, como foi construída, a lógica de cálculo da Prova Real do Nubank Ultra, os problemas já resolvidos e os próximos passos.
-
-Após ler o CONTEXT.md, confirme que entendeu:
-1. O que é o app e qual problema resolve
-2. A stack completa (Vite+React / .NET 10 / SQLite / Vercel / Fly.io)
-3. A lógica da Prova Real e do Saldo Livre
-4. O estado atual do deploy (frontend no Vercel ✅, backend Fly.io ⏳)
-5. Os itens pendentes
-
-Estou na outra máquina continuando o desenvolvimento. Leia também os arquivos-chave se precisar de contexto adicional:
-- src/CaetanoFinancas.Api/Services/FinancialCalculationService.cs
-- src/CaetanoFinancas.Api/Infrastructure/DbSeeder.cs
-- src/CaetanoFinancas.Api/Program.cs
-- app/src/api/client.ts
-- fly.toml
-- Dockerfile
-
-A primeira tarefa é: [DESCREVA O QUE QUER FAZER]
-```
