@@ -1,15 +1,26 @@
 import { useEffect, useState, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { CycleSummaryDto, CycleDetailDto } from './types/api';
 import { api } from './api/client';
 import { AddEntryModal } from './components/AddEntryModal';
 import { CsvImportModal } from './components/CsvImportModal';
-import { AlertsPanel } from './components/AlertsPanel';
-import { UltraCard } from './components/UltraCard';
-import { SummaryCard } from './components/SummaryCard';
-import { ThirdPartyCard } from './components/ThirdPartyCard';
-import { ObligationsCard } from './components/ObligationsCard';
-import { IncomeCard } from './components/IncomeCard';
-import { ExpenseList } from './components/ExpenseList';
+import { TabResumo } from './components/tabs/TabResumo';
+import { TabReceitas } from './components/tabs/TabReceitas';
+import { TabValoresReceber } from './components/tabs/TabValoresReceber';
+import { TabNubank } from './components/tabs/TabNubank';
+import { TabPiques } from './components/tabs/TabPiques';
+import { TabAmazon } from './components/tabs/TabAmazon';
+
+type Tab = 'resumo' | 'receitas' | 'receber' | 'nubank' | 'piques' | 'amazon';
+
+const TABS: { id: Tab; label: string; emoji: string; color: string }[] = [
+  { id: 'resumo',   label: 'Resumo',           emoji: '📊', color: 'text-slate-700'  },
+  { id: 'receitas', label: 'Receitas',          emoji: '💰', color: 'text-emerald-700'},
+  { id: 'receber',  label: 'Valores a Receber', emoji: '🤝', color: 'text-emerald-700'},
+  { id: 'nubank',   label: 'Nubank',            emoji: '🟣', color: 'text-violet-700' },
+  { id: 'piques',   label: 'Dinheiro/Piques',   emoji: '💵', color: 'text-amber-700'  },
+  { id: 'amazon',   label: 'Amazon',            emoji: '📦', color: 'text-blue-700'   },
+];
 
 export default function App() {
   const [cycles, setCycles] = useState<CycleSummaryDto[]>([]);
@@ -20,6 +31,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCsvModal, setShowCsvModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('resumo');
 
   useEffect(() => {
     void (async () => {
@@ -80,27 +92,32 @@ export default function App() {
   }
 
   const cycle = detail?.cycle;
-  const summary = detail?.summary;
-  const reconciliation = detail?.reconciliation;
-  const thirdParty = detail?.thirdParty;
+  const refresh = useCallback(() => { if (selectedId) loadDetail(selectedId); }, [selectedId, loadDetail]);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-violet-600 font-black mono text-lg">₢</span>
-            <h1 className="font-semibold text-slate-800 text-sm tracking-tight">CaetanoFinanças</h1>
+      <header style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }} className="sticky top-0 z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-black text-sm">₢</div>
+            <div>
+              <p className="font-bold text-slate-800 text-sm leading-tight">CaetanoFinanças</p>
+              <p className="text-xs text-slate-400 leading-tight">controle financeiro</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Seletor de mês */}
+          <div className="flex items-center gap-2 flex-1 justify-center max-w-xs">
             {loadingCycles ? (
-              <span className="text-slate-400 text-sm">Carregando...</span>
+              <span className="text-slate-500 text-sm">Carregando...</span>
             ) : (
               <select
                 value={selectedId}
                 onChange={e => setSelectedId(e.target.value)}
-                className="bg-white border border-slate-300 text-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer"
+              style={{ background: 'var(--bg-card2)', border: '1px solid var(--border)' }}
+                className="text-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer w-full"
               >
                 {cycles.map(c => (
                   <option key={c.id} value={c.id}>
@@ -112,61 +129,121 @@ export default function App() {
                 ))}
               </select>
             )}
-            <button onClick={() => setShowAddModal(true)}
-              className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
-              title="Ctrl+K"
-            >+ Lançamento</button>
-            <button onClick={() => setShowCsvModal(true)} disabled={!selectedId}
-              className="bg-white hover:bg-slate-50 disabled:opacity-40 border border-slate-300 text-slate-600 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-            >📥 CSV</button>
-            <button onClick={() => { void handleCreateNext(); }} disabled={!selectedId}
-              className="bg-white hover:bg-slate-50 disabled:opacity-40 border border-slate-300 text-slate-600 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-            >+ Próximo Mês</button>
           </div>
+
+          {/* Ações */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-violet-600 hover:bg-violet-500 text-white rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+              title="Ctrl+K"
+            >
+              + Lançamento
+            </button>
+            <button
+              onClick={() => setShowCsvModal(true)}
+              disabled={!selectedId}
+              style={{ background: 'var(--bg-card2)', border: '1px solid var(--border)' }}
+              className="text-slate-500 hover:text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            >
+              📥 CSV
+            </button>
+            <button
+              onClick={() => { void handleCreateNext(); }}
+              disabled={!selectedId}
+              style={{ background: 'var(--bg-card2)', border: '1px solid var(--border)' }}
+              className="text-slate-500 hover:text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            >
+              + Próx. Mês
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs navigation */}
+        <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto pb-px scrollbar-none">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-all border-b-2 whitespace-nowrap flex-shrink-0 ${
+                activeTab === tab.id
+                  ? `border-violet-600 ${tab.color}`
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <span>{tab.emoji}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
       </header>
 
+      {/* Modals */}
       {showCsvModal && cycle && (
-        <CsvImportModal cycleId={cycle.id} onClose={() => setShowCsvModal(false)}
-          onImported={() => { if (cycle) loadDetail(cycle.id); }} />
+        <CsvImportModal
+          cycleId={cycle.id}
+          onClose={() => setShowCsvModal(false)}
+          onImported={() => { setShowCsvModal(false); refresh(); }}
+        />
       )}
       {showAddModal && cycle && (
-        <AddEntryModal cycleId={cycle.id} onClose={() => setShowAddModal(false)}
-          onSaved={() => { setShowAddModal(false); if (cycle) loadDetail(cycle.id); }} />
+        <AddEntryModal
+          cycleId={cycle.id}
+          onClose={() => setShowAddModal(false)}
+          onSaved={() => { setShowAddModal(false); refresh(); }}
+        />
       )}
 
-      <main className="max-w-7xl mx-auto px-4 py-5 flex flex-col gap-4">
+      {/* Main content */}
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {/* Error banner */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm flex justify-between items-center">
+          <div className="mb-5 bg-red-950/60 border border-red-800/60 rounded-xl px-4 py-3 text-red-300 text-sm flex justify-between items-center">
             <span>⚠️ {error}</span>
-            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 ml-4 text-lg leading-none">✕</button>
+            <button onClick={() => setError(null)} className="text-red-500 hover:text-red-300 ml-4 text-lg leading-none">✕</button>
           </div>
         )}
 
+        {/* Loading */}
         {loadingDetail && !detail && (
-          <div className="text-center text-slate-400 py-16 text-sm">Carregando ciclo...</div>
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-slate-500 text-sm">Carregando dados...</span>
+            </div>
+          </div>
         )}
 
-        {cycle && summary && reconciliation && thirdParty && (
-          <>
-            <AlertsPanel obligations={cycle.fixedObligations} entries={cycle.expenseEntries} />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <SummaryCard summary={summary} />
-              <UltraCard cycleId={cycle.id} reconciliation={reconciliation}
-                emergencyReserveTarget={cycle.emergencyReserveTarget}
-                onUpdated={() => loadDetail(cycle.id)} />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <IncomeCard incomes={cycle.incomeItems} />
-              <ObligationsCard obligations={cycle.fixedObligations} />
-              <ThirdPartyCard thirdParty={thirdParty} />
-            </div>
-
-            <ExpenseList cycleId={cycle.id} entries={cycle.expenseEntries}
-              onUpdated={() => loadDetail(cycle.id)} />
-          </>
+        {/* Tab content */}
+        {detail && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeTab === 'resumo' && (
+                <TabResumo detail={detail} onEditFatura={refresh} />
+              )}
+              {activeTab === 'receitas' && (
+                <TabReceitas incomes={detail.cycle.incomeItems} />
+              )}
+              {activeTab === 'receber' && (
+                <TabValoresReceber entries={detail.cycle.expenseEntries} />
+              )}
+              {activeTab === 'nubank' && (
+                <TabNubank detail={detail} onUpdated={refresh} />
+              )}
+              {activeTab === 'piques' && (
+                <TabPiques detail={detail} onUpdated={refresh} />
+              )}
+              {activeTab === 'amazon' && (
+                <TabAmazon detail={detail} onUpdated={refresh} />
+              )}
+            </motion.div>
+          </AnimatePresence>
         )}
       </main>
     </div>

@@ -13,6 +13,7 @@ Aplicação web para **controle financeiro pessoal** do Leandro Caetano da Silva
 | Frontend | Vite + React 19 + TypeScript + Tailwind CSS v4.0.9 |
 | Backend | .NET 10 (Web API com Controllers clássicos, `[ApiController]`) |
 | Banco de dados | SQLite + EF Core 10 (WAL mode) |
+| Gráficos | Recharts 3 + Framer Motion 14 |
 | Deploy Frontend | Vercel (`controle-financeiro-sigma-drab.vercel.app`) |
 | Deploy Backend | Fly.io — **pendente** (grátis, região São Paulo `gru`) |
 
@@ -25,17 +26,28 @@ controle-financeiro/
 ├── app/                        # Frontend React/Vite
 │   ├── src/
 │   │   ├── api/client.ts       # HTTP client (usa VITE_API_URL em prod)
-│   │   ├── components/         # Cards, modais, listas
-│   │   ├── lib/fmt.ts          # Formatação BRL, cores por fonte (light theme)
+│   │   ├── types/api.ts        # Tipos TypeScript espelhando o JSON da API
+│   │   ├── vite-env.d.ts       # Tipos de import.meta.env
+│   │   ├── components/
+│   │   │   ├── tabs/           # Abas do dashboard (6 componentes)
+│   │   │   │   ├── TabResumo.tsx         # KPIs, gauge semi-circular, donut por fonte, barras obrigações, Prova Real
+│   │   │   │   ├── TabReceitas.tsx       # Donut + barras por fonte de renda + lista detalhada
+│   │   │   │   ├── TabValoresReceber.tsx # Donut + barras por pessoa + listas (Xus, Jaum, Tia, Geovane, Elvis)
+│   │   │   │   ├── TabNubank.tsx         # KPIs fatura/meus gastos/terceiros, donut/barras por tag, lista com delete, edit fatura inline
+│   │   │   │   ├── TabPiques.tsx         # Donut + barras por categoria + lista Dinheiro/Pix com delete
+│   │   │   │   └── TabAmazon.tsx         # KPIs, donut + barras por categoria, parcelas fixas, lista com delete
+│   │   │   ├── AddEntryModal.tsx         # 3 modos: ⚡ Rápido, 📋 Guiado, 📄 Lote
+│   │   │   └── CsvImportModal.tsx        # Importar CSV/Google Sheets
+│   │   ├── lib/fmt.ts          # brl(), CHART_COLORS, CATEGORY_COLORS, TAG_PREFIXES, SOURCE_COLORS (dark)
 │   │   └── lib/parser.ts       # Parser de comandos rápidos e faturas coladas
-│   ├── .env.example            # VITE_API_URL=https://sua-api.fly.dev
+│   ├── .env.example            # VITE_API_URL=https://sua-api.fly.dev (SEM /api no final)
 │   └── vite.config.ts          # Proxy /api → localhost:5148 (dev apenas)
 │
 ├── src/CaetanoFinancas.Api/    # Backend .NET 10
 │   ├── Entities/               # MonthCycle, IncomeItem, FixedObligation, ExpenseEntry, ThirdPartyPerson
 │   ├── Infrastructure/
 │   │   ├── AppDbContext.cs
-│   │   └── DbSeeder.cs         # Seed Jul-Dez 2026 com dados reais
+│   │   └── DbSeeder.cs         # Seed Jul-Dez 2026 — Nubank até 21/11, Piques até 20/11, novas entradas de Xus
 │   ├── Services/
 │   │   └── FinancialCalculationService.cs
 │   ├── Controllers/
@@ -153,6 +165,8 @@ Obrigações fixas mensais: Aluguel (800), Punto 13/23 (1340.78), Amazon Prime (
 5. **Tailwind CSS v4 crash no dev server** → pinado em v4.0.9, fontes em `:root` fora do `@theme`
 6. **Vercel 404 para /api/*** → `VITE_API_URL` env var + CORS no backend
 7. **Minimal APIs → Controllers clássicos** → `Endpoints/` removida; rotas e JSON idênticos.
+9. **Dashboard redesenhado** → tema dark (`#0F1117`), fonte Plus Jakarta Sans + JetBrains Mono, 6 abas animadas com Recharts (donut, barras, gauge, área). `types/api.ts` e `vite-env.d.ts` recriados.
+10. **Seed atualizado 22/11/2026** → Nubank até 21/11 (+R$725,81), Piques [CAR] Conserto Pneu +R$20, Xus +R$435,35 (Manga, Abacate, Vacina Lara).
    No `Program.cs` o JSON agora é configurado em `AddControllers().AddJsonOptions(...)`
    (`ConfigureHttpJsonOptions` só vale para Minimal APIs) e
    `SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true` evita 400 nas entidades com navegação.
@@ -208,8 +222,10 @@ VITE_API_URL = https://caetano-financas-api.fly.dev   (SEM /api no final)
 ## Itens Pendentes / Próximos Passos
 
 - [x] Migrar API para Controllers clássicos (build OK, 6/6 testes, smoke test OK)
+- [x] Dashboard redesenhado: tema dark, Plus Jakarta Sans, 6 abas com Recharts + Framer Motion
+- [x] Seed atualizado com dados reais de 22/11/2026
+- [x] `app/src/types/api.ts` e `app/src/vite-env.d.ts` recriados e versionados
 - [ ] **DEPLOY**: criar app + volume + `fly deploy --ha=false` + configurar VITE_API_URL no Vercel
-- [ ] Versionar `app/src/types/api.ts` e `app/src/vite-env.d.ts`
 - [ ] Ativar Spotify na Prova Real: `SubtractFromUltraInvoice=true`, `FullInvoiceAmount=40.90`
 - [ ] Ativar Disney+ na Prova Real: `SubtractFromUltraInvoice=true`, `FullInvoiceAmount=59.90`
 - [ ] Preencher `UltraInvoiceTotal` para Jul, Ago, Nov/2026 (atualmente = 0)

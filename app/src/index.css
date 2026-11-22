@@ -4,21 +4,29 @@
   --color-nubank: #7C3AED;
   --color-amazon: #2563EB;
   --color-piques: #D97706;
-  --color-terceiros: #15803D;
+  --color-boleto: #64748B;
+  --color-receita: #059669;
 }
 
 /* Variáveis de fonte fora do @theme (bug tailwindcss/vite 4.0.x) */
 :root {
-  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Outfit', system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --bg-base:  #F1F5F9;
+  --bg-card:  #FFFFFF;
+  --bg-card2: #F8FAFC;
+  --border:   rgba(0, 0, 0, 0.07);
+  --text-primary:   #0F172A;
+  --text-secondary: #475569;
+  --text-muted:     #94A3B8;
 }
 
 * { box-sizing: border-box; }
 
 body {
   font-family: var(--font-sans);
-  background-color: #F1F5F9;
-  color: #0F172A;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
   min-height: 100vh;
   font-size: 14px;
   line-height: 1.5;
@@ -29,7 +37,34 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: #F1F5F9; }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* Cards light */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* Recharts light overrides */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+.recharts-tooltip-label {
+  color: #64748B !important;
+}
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(0,0,0,0.05) !important;
+}
+.recharts-text {
+  fill: #94A3B8 !important;
+}
