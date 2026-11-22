@@ -7,8 +7,10 @@ import type {
 } from '../types/api';
 
 // Em desenvolvimento com proxy Vite: usa '/api' (proxied para localhost:5148)
-// Em produção (Vercel etc): define VITE_API_URL=https://sua-api.com
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
+// Em produção (Vercel etc): define VITE_API_URL=https://sua-api.com (SEM /api no final;
+// o sufixo /api é adicionado aqui, pois as rotas do backend são /api/...)
+const RAW_API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '');
+export const BASE = RAW_API_URL ? `${RAW_API_URL}/api` : '/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
