@@ -284,7 +284,7 @@ public static class DbSeeder
             ("Bananas - Maxi Carne",                 9.00m,  "03/11", "Alimentação"),
             ("Soro + camisinha + sorvetes",         52.96m,  "05/11", "Farmácia"),
             ("Insano Burger",                       58.00m,  "05/11", "Alimentação"),
-            ("Ovada",                               19.99m,  "06/11", "Alimentação"),
+            ("Ovos",                               19.99m,  "06/11", "Alimentação"),
             ("Camiseta renner - niver pat",         79.90m,  "06/11", "Vestuário"),
             ("Estacionamento",                      18.00m,  "06/11", "Transporte"),
             ("McDonalds",                          100.80m,  "06/11", "Alimentação"),

@@ -173,7 +173,7 @@ export function TabNubank({ detail, onUpdated }: Props) {
         </div>
         <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto">
           <AnimatePresence>
-            {meusGastos.sort((a, b) => a.date.localeCompare(b.date)).map(e => {
+            {meusGastos.sort((a, b) => b.date.localeCompare(a.date)).map(e => {
               const prefix = extractTagPrefix(e.description);
               const tagColor = getTagColor(getEffectiveTag(e));
               return (
