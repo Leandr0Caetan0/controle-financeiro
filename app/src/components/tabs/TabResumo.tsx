@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  RadialBarChart, RadialBar,
 } from 'recharts';
 import type { CycleDetailDto } from '../../types/api';
 import { brl, CHART_COLORS, SOURCE_COLORS, SOURCE_LABELS } from '../../lib/fmt';
@@ -33,10 +32,34 @@ function StatCard({ label, value, sub, color, delay = 0 }: {
 
 export function TabResumo({ detail }: Props) {
   const { cycle, summary, reconciliation } = detail;
+
+  // Datas
   const today = new Date();
   const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   const daysPassed = today.getDate();
-  const progressPct = Math.round((daysPassed / daysInMonth) * 100);
+
+  // Saldo e receitas (declarados antes de usar)
+  const saldo = summary.saldoLivreDoMes;
+  const receitas = summary.totalReceitas;
+
+  // Ciclo Nubank: vira dia 02 → progresso de dia 02 ao dia 02 do próximo mês
+  const cycleStart = 2;
+  const dayInCycle = daysPassed >= cycleStart
+    ? daysPassed - cycleStart + 1
+    : daysInMonth - cycleStart + 1 + daysPassed;
+  const nubankCyclePct = Math.min(100, Math.round((dayInCycle / daysInMonth) * 100));
+
+  // Saldo: porcentagem usada e cor dinâmica
+  const saldoAbs = Math.abs(saldo);
+  const saldoPctUsado = receitas > 0
+    ? Math.min(100, Math.round(((receitas - Math.max(0, saldo)) / receitas) * 100))
+    : 100;
+  const saldoColor = saldo < 0
+    ? '#DC2626'
+    : saldoPctUsado >= 90 ? '#DC2626'
+    : saldoPctUsado >= 70 ? '#EA580C'
+    : saldoPctUsado >= 50 ? '#D97706'
+    : '#059669';
 
   // Gastos por fonte (donut)
   const sourceData = useMemo(() => {
@@ -52,17 +75,7 @@ export function TabResumo({ detail }: Props) {
 
   const totalGastos = sourceData.reduce((s, d) => s + d.value, 0);
 
-  // Gauge do saldo livre
-  const saldo = summary.saldoLivreDoMes;
-  const receitas = summary.totalReceitas;
-  const pctUsado = receitas > 0 ? Math.min(100, Math.max(0, ((receitas - Math.max(0, saldo)) / receitas) * 100)) : 100;
-
-  const gaugeData = [
-    { name: 'Usado', value: pctUsado, fill: saldo < 0 ? CHART_COLORS.perigo : saldo < receitas * 0.2 ? CHART_COLORS.laranja : CHART_COLORS.receita },
-    { name: 'Livre', value: 100 - pctUsado, fill: '#E2E8F0' },
-  ];
-
-  // Obrigações por categoria (barras horizontais)
+  // Obrigações por categoria
   const obligationsByCategory = useMemo(() => {
     const map: Record<string, number> = {};
     for (const obl of cycle.fixedObligations.filter(o => o.includeInMyAccounts)) {
@@ -75,9 +88,9 @@ export function TabResumo({ detail }: Props) {
   }, [cycle.fixedObligations]);
 
   const statusCfg = {
-    Exata:          { label: 'Prova Real OK ✓',   bg: 'bg-emerald-50 border-emerald-200', color: 'text-emerald-700', icon: '✅' },
-    Arredondamento: { label: 'Prova Real OK ✓',   bg: 'bg-emerald-50 border-emerald-200', color: 'text-emerald-700', icon: '✅' },
-    Divergente:     { label: '⚠ DIVERGENTE',      bg: 'bg-red-50 border-red-400 ring-2 ring-red-200', color: 'text-red-700 font-bold', icon: '❌' },
+    Exata:          { label: 'Prova Real OK ✓',  bg: 'bg-emerald-50 border-emerald-200', color: 'text-emerald-700', icon: '✅' },
+    Arredondamento: { label: 'Prova Real OK ✓',  bg: 'bg-emerald-50 border-emerald-200', color: 'text-emerald-700', icon: '✅' },
+    Divergente:     { label: '⚠ DIVERGENTE',     bg: 'bg-red-50 border-red-400 ring-2 ring-red-200', color: 'text-red-700 font-bold', icon: '❌' },
   };
   const st = statusCfg[reconciliation.status] ?? statusCfg.Divergente;
 
@@ -98,41 +111,67 @@ export function TabResumo({ detail }: Props) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Gauge saldo */}
+        {/* Ciclo & Saldo — com 2 barras */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="card p-5 flex flex-col items-center gap-3"
+          className="card p-5 flex flex-col gap-4"
         >
-          <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">Saldo do Mês</span>
-          <div className="relative w-48 h-24 overflow-hidden">
-            <ResponsiveContainer width="100%" height={160}>
-              <RadialBarChart
-                cx="50%" cy="100%"
-                innerRadius="70%" outerRadius="100%"
-                startAngle={180} endAngle={0}
-                data={gaugeData}
-              >
-                <RadialBar dataKey="value" cornerRadius={4} />
-              </RadialBarChart>
-            </ResponsiveContainer>
-            <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center">
-              <span className={`mono font-bold text-xl ${saldo >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                {brl(Math.abs(saldo))}
-              </span>
-              <span className="text-xs text-slate-400">{saldo >= 0 ? 'disponível' : 'negativo'}</span>
+          <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">Ciclo & Saldo</span>
+
+          {/* Valor do saldo — grande e colorido */}
+          <div className="text-center py-1">
+            <span className="mono font-black text-4xl" style={{ color: saldoColor }}>
+              {brl(saldoAbs)}
+            </span>
+            <p className="text-xs mt-1" style={{ color: saldoColor }}>
+              {saldo >= 0 ? '✓ disponível' : '✕ estourado'}
+            </p>
+          </div>
+
+          {/* Barra 1: Ciclo Nubank (dia 02 → dia 02) */}
+          <div>
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-xs font-semibold text-violet-600">🟣 Ciclo Nubank</span>
+              <span className="text-xs text-slate-400">dia {daysPassed} · {nubankCyclePct}%</span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${nubankCyclePct}%`,
+                  background: 'linear-gradient(90deg, #7C3AED, #A78BFA)',
+                }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-slate-300 mt-0.5">
+              <span>dia 02</span>
+              <span>dia 02 (próx.)</span>
             </div>
           </div>
-          <div className="w-full flex justify-between text-xs text-slate-400 mt-1">
-            <span>Dia {daysPassed}/{daysInMonth}</span>
-            <span>{progressPct}% do mês</span>
-          </div>
-          <div className="w-full bg-slate-200 rounded-full h-1.5">
-            <div
-              className="h-1.5 rounded-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all duration-700"
-              style={{ width: `${progressPct}%` }}
-            />
+
+          {/* Barra 2: Saldo disponível (muda de cor conforme esgota) */}
+          <div>
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-xs font-semibold text-slate-600">💰 Saldo livre</span>
+              <span className="text-xs text-slate-400">
+                {saldo >= 0 ? `${100 - saldoPctUsado}% restante` : 'estourado'}
+              </span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${Math.min(100, saldoPctUsado)}%`,
+                  background: saldoColor,
+                }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-slate-300 mt-0.5">
+              <span>0%</span>
+              <span>{brl(receitas)}</span>
+            </div>
           </div>
         </motion.div>
 
@@ -171,7 +210,7 @@ export function TabResumo({ detail }: Props) {
           </div>
         </motion.div>
 
-        {/* Prova Real status */}
+        {/* Prova Real */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -199,11 +238,9 @@ export function TabResumo({ detail }: Props) {
             <div className="border-t border-slate-100 pt-2 flex justify-between">
               <span className="text-slate-700 font-semibold">Diferença</span>
               <span className={`mono font-bold ${
-                reconciliation.diferenca === 0
-                  ? 'text-emerald-600'
-                  : Math.abs(reconciliation.diferenca) <= 0.02
-                    ? 'text-amber-600'
-                    : 'text-red-600'
+                reconciliation.diferenca === 0 ? 'text-emerald-600'
+                : Math.abs(reconciliation.diferenca) <= 0.02 ? 'text-amber-600'
+                : 'text-red-600'
               }`}>
                 {brl(reconciliation.diferenca)}
               </span>
@@ -213,7 +250,7 @@ export function TabResumo({ detail }: Props) {
             {reconciliation.status === 'Divergente' ? (
               <div className="flex flex-col gap-0.5">
                 <span className="font-bold text-base">{st.icon} {st.label}</span>
-                <span className="text-xs font-normal opacity-80">diff: {brl(reconciliation.diferenca)} — adicione os lançamentos faltantes</span>
+                <span className="text-xs font-normal opacity-80">diff: {brl(reconciliation.diferenca)} — adicione lançamentos faltantes</span>
               </div>
             ) : (
               <span>{st.icon} {st.label} <span className="opacity-60 text-xs font-normal">(diff: {brl(Math.abs(reconciliation.diferenca))})</span></span>

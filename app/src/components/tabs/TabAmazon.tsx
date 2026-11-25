@@ -121,18 +121,47 @@ export function TabAmazon({ detail, onUpdated }: Props) {
             <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">Parcelas Fixas Amazon</span>
           </div>
           <div className="divide-y divide-slate-100">
-            {amazonObl.map(o => (
-              <div key={o.id} className="flex items-center justify-between px-5 py-2.5">
-                <div>
-                  <p className="text-sm text-slate-700">{o.title}</p>
-                  <p className="text-xs text-slate-400">
-                    Venc. dia {o.dueDay} · {o.category}
-                    {o.installmentCurrent != null && o.installmentTotal != null && ` · ${o.installmentCurrent}/${o.installmentTotal}`}
-                  </p>
+            {amazonObl.map(o => {
+              const hasParcela = o.installmentCurrent != null && o.installmentTotal != null;
+              const pct = hasParcela ? Math.round((o.installmentCurrent! / o.installmentTotal!) * 100) : null;
+              return (
+                <div key={o.id} className="px-5 py-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div>
+                      <p className="text-sm text-slate-700">{o.title}</p>
+                      <p className="text-xs text-slate-400">
+                        Venc. dia {o.dueDay} · {o.category}
+                        {hasParcela && ` · parcela ${o.installmentCurrent}/${o.installmentTotal}`}
+                      </p>
+                    </div>
+                    <span className="mono text-sm text-blue-600 font-medium ml-4">{brl(o.amount)}</span>
+                  </div>
+                  {hasParcela && pct !== null && (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-xs text-slate-400 mb-1">
+                        <span>{pct === 100 ? '✅ Quitado' : `${pct}% pago`}</span>
+                        <span className="mono">{o.installmentCurrent}/{o.installmentTotal} parcelas</span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${pct}%`,
+                            background: pct === 100
+                              ? '#059669'
+                              : pct >= 70
+                                ? '#2563EB'
+                                : pct >= 40
+                                  ? '#F59E0B'
+                                  : '#94A3B8',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <span className="mono text-sm text-blue-600 font-medium">{brl(o.amount)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
       )}

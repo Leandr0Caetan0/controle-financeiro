@@ -24,6 +24,13 @@ function getTagColor(tag: string): string {
   return CATEGORY_COLORS[tag] ?? CHART_COLORS.slate;
 }
 
+const PencilIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+);
+
 export function TabNubank({ detail, onUpdated }: Props) {
   const { cycle, reconciliation } = detail;
   const [deleting, setDeleting] = useState<number | null>(null);
@@ -75,6 +82,7 @@ export function TabNubank({ detail, onUpdated }: Props) {
     <div className="flex flex-col gap-5">
       {/* KPI Nubank */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Fatura Total — editável */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }} className="card p-4">
           <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-1">Fatura Total</p>
           {editingFatura ? (
@@ -87,35 +95,35 @@ export function TabNubank({ detail, onUpdated }: Props) {
               <button onClick={() => setEditingFatura(false)} className="text-slate-400 text-sm px-1">✕</button>
             </div>
           ) : (
-            <button onClick={startEditFatura} className="mono text-2xl font-bold text-violet-700 hover:text-violet-600 group flex items-center gap-1">
+            <button onClick={startEditFatura} className="mono text-2xl font-bold text-violet-700 hover:text-violet-600 group flex items-center gap-2">
               {brl(cycle.ultraInvoiceTotal)}
-              <span className="text-slate-300 group-hover:text-violet-400 text-xs">✏</span>
+              <span className="text-slate-400 group-hover:text-violet-500 transition-colors" title="Editar fatura">
+                <PencilIcon />
+              </span>
             </button>
           )}
+          <p className="text-xs text-slate-400 mt-1">vence dia 02 · clique p/ editar</p>
         </motion.div>
+
+        {/* Meus Gastos */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="card p-4">
           <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-1">Meus Gastos</p>
           <p className="mono text-2xl font-bold text-violet-700">{brl(total)}</p>
+          <p className="text-xs text-slate-400 mt-1">{meusGastos.length} lançamentos</p>
         </motion.div>
+
+        {/* Terceiros */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-4">
           <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-1">Terceiros</p>
           <p className="mono text-2xl font-bold text-blue-600">{brl(reconciliation.totalTerceiros)}</p>
+          <p className="text-xs text-slate-400 mt-1">a receber</p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-          className={`card p-4 ${Math.abs(reconciliation.diferenca) > 0.02 ? 'border-red-400 ring-2 ring-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50'}`}
-        >
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-1">Prova Real</p>
-          {Math.abs(reconciliation.diferenca) <= 0.02 ? (
-            <>
-              <p className="mono text-2xl font-bold text-emerald-600">{brl(reconciliation.diferenca)}</p>
-              <p className="text-xs text-emerald-600 mt-0.5">✅ OK {Math.abs(reconciliation.diferenca) > 0 ? '(arredondamento)' : ''}</p>
-            </>
-          ) : (
-            <>
-              <p className="mono text-2xl font-bold text-red-700">{brl(reconciliation.diferenca)}</p>
-              <p className="text-xs text-red-600 font-semibold mt-0.5">❌ DIVERGENTE — verifique lançamentos</p>
-            </>
-          )}
+
+        {/* Assinaturas (substitui Prova Real) */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="card p-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-1">Assinaturas</p>
+          <p className="mono text-2xl font-bold text-orange-600">{brl(reconciliation.totalAssinaturas)}</p>
+          <p className="text-xs text-slate-400 mt-1">valor cheio na fatura</p>
         </motion.div>
       </div>
 
@@ -193,8 +201,15 @@ export function TabNubank({ detail, onUpdated }: Props) {
                   <div className="flex items-center gap-3 flex-shrink-0 ml-3">
                     <span className="mono text-sm text-slate-800 font-medium">{brl(e.amount)}</span>
                     <button onClick={() => { void handleDelete(e.id); }} disabled={deleting === e.id}
-                      className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 text-xs px-1 transition-all"
-                    >{deleting === e.id ? '…' : '✕'}</button>
+                      className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all p-1 rounded"
+                      title="Remover lançamento"
+                    >
+                      {deleting === e.id ? '…' : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 </motion.div>
               );
