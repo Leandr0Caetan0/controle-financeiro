@@ -10,14 +10,16 @@ import { TabValoresReceber } from './components/tabs/TabValoresReceber';
 import { TabNubank } from './components/tabs/TabNubank';
 import { TabPiques } from './components/tabs/TabPiques';
 import { TabAmazon } from './components/tabs/TabAmazon';
+import { TabXus } from './components/tabs/TabXus';
 
-type Tab = 'resumo' | 'receitas' | 'receber' | 'nubank' | 'piques' | 'amazon';
+type Tab = 'resumo' | 'receitas' | 'receber' | 'nubank' | 'piques' | 'amazon' | 'xus';
 
 const TABS: { id: Tab; label: string; emoji: string; color: string }[] = [
   { id: 'resumo',   label: 'Resumo',           emoji: '📊', color: 'text-slate-700'  },
   { id: 'receitas', label: 'Receitas',          emoji: '💰', color: 'text-emerald-700'},
   { id: 'receber',  label: 'Valores a Receber', emoji: '🤝', color: 'text-emerald-700'},
   { id: 'nubank',   label: 'Nubank',            emoji: '🟣', color: 'text-violet-700' },
+  { id: 'xus',      label: 'Xus',              emoji: '👩', color: 'text-violet-700' },
   { id: 'piques',   label: 'Dinheiro/Piques',   emoji: '💵', color: 'text-amber-700'  },
   { id: 'amazon',   label: 'Amazon',            emoji: '📦', color: 'text-blue-700'   },
 ];
@@ -241,6 +243,9 @@ export default function App() {
               )}
               {activeTab === 'amazon' && (
                 <TabAmazon detail={detail} onUpdated={refresh} />
+              )}
+              {activeTab === 'xus' && (
+                <TabXus entries={detail.cycle.expenseEntries} />
               )}
             </motion.div>
           </AnimatePresence>
